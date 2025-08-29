@@ -1,23 +1,22 @@
-my-app/
+flatdrive-trc20/
 │
 ├── .gitignore
 node_modules/
 .env
-
 ├── package.json
 {
-"name": "flatdrive-trc20",
-"version": "1.0.0",
-"private": true,
-"scripts": {
-"start": "node server.js"
-},
-"dependencies": {
-"cors": "^2.8.5",
-"dotenv": "^16.4.5",
-"express": "^4.19.2",
-"tronweb": "^5.3.0"
-}
+  "name": "flatdrive-trc20",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "tronweb": "^5.3.0"
+  }
 }
 
 ├── .env.example
@@ -47,66 +46,64 @@ const tronWeb = new TronWeb({ fullHost: FULL_NODE, privateKey: PRIVATE_KEY || un
 let serverFeePoolTRX = 0;
 
 async function getServerAddress() {
-try {
-if (!PRIVATE_KEY) return null;
-const hex = tronWeb.address.fromPrivateKey(PRIVATE_KEY);
-const base58 = tronWeb.address.fromHex(hex);
-return base58;
-} catch {
-return null;
-}
+  try {
+    if (!PRIVATE_KEY) return null;
+    const hex = tronWeb.address.fromPrivateKey(PRIVATE_KEY);
+    const base58 = tronWeb.address.fromHex(hex);
+    return base58;
+  } catch {
+    return null;
+  }
 }
 
 function toUsdtUnit(amount) {
-return BigInt(Math.round(Number(amount) * 1e6));
+  return BigInt(Math.round(Number(amount) * 1e6));
 }
 
 app.get('/api/health', async (req, res) => {
-res.json({ ok: true, serverAddress: await getServerAddress(), feePoolTRX: serverFeePoolTRX });
+  res.json({ ok: true, serverAddress: await getServerAddress(), feePoolTRX: serverFeePoolTRX });
 });
 
 app.post('/api/fund-fee-pool', (req, res) => {
-const amt = Number((req.body || {}).amountTRX);
-if (!amt || amt <= 0) return res.status(400).json({ ok: false, error: 'amountTRX مطلوب > 0' });
-serverFeePoolTRX += amt;
-return res.json({ ok: true, feePoolTRX: serverFeePoolTRX });
+  const amt = Number((req.body || {}).amountTRX);
+  if (!amt || amt <= 0) return res.status(400).json({ ok: false, error: 'amountTRX مطلوب > 0' });
+  serverFeePoolTRX += amt;
+  return res.json({ ok: true, feePoolTRX: serverFeePoolTRX });
 });
 
 app.get('/api/fee-pool', (req, res) => {
-res.json({ ok: true, feePoolTRX: serverFeePoolTRX });
+  res.json({ ok: true, feePoolTRX: serverFeePoolTRX });
 });
 
 app.post('/api/withdraw', async (req, res) => {
-try {
-const { to, amountUSDT } = req.body || {};
-if (!to || typeof to !== 'string' || !to.startsWith('T')) return res.status(400).json({ ok: false, error: 'العنوان غير صالح' });
-const amt = Number(amountUSDT);
-if (!amt || amt <= 0) return res.status(400).json({ ok: false, error: 'المبلغ غير صالح' });
+  try {
+    const { to, amountUSDT } = req.body || {};
+    if (!to || typeof to !== 'string' || !to.startsWith('T')) return res.status(400).json({ ok: false, error: 'العنوان غير صالح' });
+    const amt = Number(amountUSDT);
+    if (!amt || amt <= 0) return res.status(400).json({ ok: false, error: 'المبلغ غير صالح' });
 
-if (serverFeePoolTRX < WITHDRAW_FEE_TRX) return res.status(400).json({ ok: false, error: 'محفظة الخادم لا تحتوي على رسوم كافية' });  
-if (!PRIVATE_KEY) return res.status(500).json({ ok: false, error: 'المفتاح الخاص غير مُهيأ في الخادم' });  
+    if (serverFeePoolTRX < WITHDRAW_FEE_TRX) return res.status(400).json({ ok: false, error: 'محفظة الخادم لا تحتوي على رسوم كافية' });  
+    if (!PRIVATE_KEY) return res.status(500).json({ ok: false, error: 'المفتاح الخاص غير مُهيأ في الخادم' });  
 
-const contract = await tronWeb.contract().at(USDT_CONTRACT);  
-const txId = await contract.transfer(to, toUsdtUnit(amt)).send({ feeLimit: 15_000_000 });  
+    const contract = await tronWeb.contract().at(USDT_CONTRACT);  
+    const txId = await contract.transfer(to, toUsdtUnit(amt)).send({ feeLimit: 15_000_000 });  
 
-serverFeePoolTRX -= WITHDRAW_FEE_TRX;  
+    serverFeePoolTRX -= WITHDRAW_FEE_TRX;  
 
-return res.json({ ok: true, txId, feePoolTRX: serverFeePoolTRX });
-
-} catch (e) {
-return res.status(500).json({ ok: false, error: e?.message || String(e) });
-}
+    return res.json({ ok: true, txId, feePoolTRX: serverFeePoolTRX });
+  } catch (e) {
+    return res.status(500).json({ ok: false, error: e?.message || String(e) });
+  }
 });
 
 app.post('/api/sync-counters', (req, res) => res.json({ ok: true }));
 
 const PORT = Number(process.env.PORT || 8080);
 app.listen(PORT, () => {
-console.log(FlatDrive TRC20 server listening on port ${PORT});
+  console.log(`FlatDrive TRC20 server listening on port ${PORT}`);
 });
 
 ├── README.md
-
 FlatDrive TRC20 — تشغيل ورفع
 
 تشغيل محليًا
@@ -118,290 +115,274 @@ TRON_FULL_NODE=https://api.trongrid.io
 WITHDRAW_FEE_TRX=5
 PORT=8080
 
-
 2. ثبّت الحزم وشغّل:
 npm install
 npm start
 
-
 3. افتح: http://localhost:8080
-
-
 
 نشر على Render
 
 New → Web Service → اربط المستودع الذي يحتوي هذا المجلد my-app.
 
 Environment Variables:
-
 PRIVATE_KEY
-
 USDT_CONTRACT
-
 TRON_FULL_NODE
-
 WITHDRAW_FEE_TRX
-
 PORT
 
-
 Build Command: npm install
-
 Start Command: npm start
-
 
 > ملاحظة: إرسال TRC20 على الشبكة يتطلب أن تحتوي محفظة الخادم على TRX كافٍ لرسوم الشبكة.
 
-
-
 └── frontend/
-├── index.html
-<!doctype html>
+    ├── index.html
+    <!doctype html>
+    <html lang="ar">    
+    <head>    
+      <meta charset="utf-8">    
+      <meta name="viewport" content="width=device-width, initial-scale=1">    
+      <title>FlatDrive — TRC20</title>    
+      <link rel="stylesheet" href="styles.css">    
+    </head>    
+    <body>    
+    <div class="game-container">          
+      <h1>🚗 FlatDrive — النسخة النهائية TRC20</h1>          
+      <div class="info">          
+        <div>TRX المكتسب: <strong id="trxEarned">0</strong></div>          
+        <div>المسافة المقطوعة: <span id="distance">0</span> متر</div>          
+        <div>رصيد داخلي (USDT): <span id="wallet">0.00</span></div>          
+        <div>تمويل اللعبة (USDT): <span id="gameFund">0.00</span></div>          
+        <div>محفظة الخادم (TRX): <span id="serverWallet">0.00</span></div>          
+        <div>الحالة: <span id="status">متوقفة</span></div>          
+      </div>      
+      <canvas id="gameCanvas"></canvas>      
+      <div class="controls">          
+        <select id="carColor">          
+          <option value="#ff6b6b">أحمر</option>          
+          <option value="#4ade80">أخضر</option>          
+          <option value="#3b82f6">أزرق</option>          
+          <option value="#facc15">أصفر</option>          
+        </select>          
+        <button id="startBtn">ابدأ القيادة</button>          
+        <button id="stopBtn">توقف</button>          
+        <button id="collectBtn">اجمع (تحويل)</button>          
+        <button id="convertFund">تحويل تمويل اللعبة</button>          
+      </div>        
+      <div class="fund-panel">          
+        <h2>تمويل محفظة الخادم</h2>          
+        <input id="fundAmount" type="number" min="0" placeholder="كم TRX تريد إرسال؟">          
+        <button id="fundServerBtn">إيداع</button>          
+      </div>        
+      <div class="withdraw-panel">          
+        <h2>طلب سحب</h2>          
+        <input id="toAddress" placeholder="عنوان TRX يبدأ بـ T..." />          
+        <input id="amount" type="number" placeholder="المبلغ USDT" />          
+        <button id="reqWithdraw">اطلب سحب</button>          
+      </div>          
+    </div>    
+    <script src="app.js"></script>    
+    </body>    
+    </html>
 
-<html lang="ar">    
-<head>    
-  <meta charset="utf-8">    
-  <meta name="viewport" content="width=device-width, initial-scale=1">    
-  <title>FlatDrive — TRC20</title>    
-  <link rel="stylesheet" href="styles.css">    
-</head>    
-<body>    
-<div class="game-container">          
-  <h1>🚗 FlatDrive — النسخة النهائية TRC20</h1>          
-  <div class="info">          
-    <div>TRX المكتسب: <strong id="trxEarned">0</strong></div>          
-    <div>المسافة المقطوعة: <span id="distance">0</span> متر</div>          
-    <div>رصيد داخلي (USDT): <span id="wallet">0.00</span></div>          
-    <div>تمويل اللعبة (USDT): <span id="gameFund">0.00</span></div>          
-    <div>محفظة الخادم (TRX): <span id="serverWallet">0.00</span></div>          
-    <div>الحالة: <span id="status">متوقفة</span></div>          
-  </div>      
-  <canvas id="gameCanvas"></canvas>      
-  <div class="controls">          
-    <select id="carColor">          
-      <option value="#ff6b6b">أحمر</option>          
-      <option value="#4ade80">أخضر</option>          
-      <option value="#3b82f6">أزرق</option>          
-      <option value="#facc15">أصفر</option>          
-    </select>          
-    <button id="startBtn">ابدأ القيادة</button>          
-    <button id="stopBtn">توقف</button>          
-    <button id="collectBtn">اجمع (تحويل)</button>          
-    <button id="convertFund">تحويل تمويل اللعبة</button>          
-  </div>        
-  <div class="fund-panel">          
-    <h2>تمويل محفظة الخادم</h2>          
-    <input id="fundAmount" type="number" min="0" placeholder="كم TRX تريد إرسال؟">          
-    <button id="fundServerBtn">إيداع</button>          
-  </div>        
-  <div class="withdraw-panel">          
-    <h2>طلب سحب</h2>          
-    <input id="toAddress" placeholder="عنوان TRX يبدأ بـ T..." />          
-    <input id="amount" type="number" placeholder="المبلغ USDT" />          
-    <button id="reqWithdraw">اطلب سحب</button>          
-  </div>          
-</div>    
-<script src="app.js"></script>    
-</body>    
-</html>  ├── styles.css
+    ├── styles.css
+    body {
+      font-family: Arial, sans-serif;
+      background: #0f172a;
+      color: #e6eef8;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+    }
 
-body {
-font-family: Arial, sans-serif;
-background: #0f172a;
-color: #e6eef8;
-padding: 20px;
-display: flex;
-justify-content: center;
-}
+    .game-container {
+      width: 760px;
+      background: #0b1220;
+      padding: 18px;
+      border-radius: 10px;
+      box-shadow: 0 6px 24px rgba(2, 6, 23, 0.6);
+    }
 
-.game-container {
-width: 760px;
-background: #0b1220;
-padding: 18px;
-border-radius: 10px;
-box-shadow: 0 6px 24px rgba(2, 6, 23, 0.6);
-}
+    h1 {
+      font-size: 20px;
+      margin-bottom: 10px;
+    }
 
-h1 {
-font-size: 20px;
-margin-bottom: 10px;
-}
+    .info {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      background: #071026;
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+    }
 
-.info {
-display: flex;
-flex-wrap: wrap;
-justify-content: space-between;
-background: #071026;
-padding: 10px;
-border-radius: 8px;
-margin-bottom: 10px;
-}
+    canvas {
+      width: 100%;
+      height: 140px;
+      background: #02111b;
+      border-radius: 8px;
+      display: block;
+      margin: 12px 0;
+    }
 
-canvas {
-width: 100%;
-height: 140px;
-background: #02111b;
-border-radius: 8px;
-display: block;
-margin: 12px 0;
-}
+    .controls,
+    .fund-panel,
+    .withdraw-panel {
+      margin-bottom: 16px;
+    }
 
-.controls,
-.fund-panel,
-.withdraw-panel {
-margin-bottom: 16px;
-}
+    button {
+      background: #0ea5a6;
+      color: #041014;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      margin: 4px 0;
+    }
 
-button {
-background: #0ea5a6;
-color: #041014;
-border: none;
-padding: 8px 12px;
-border-radius: 8px;
-cursor: pointer;
-margin: 4px 0;
-}
+    input,
+    select {
+      width: 100%;
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      background: #02121a;
+      color: white;
+      margin-top: 6px;
+    }
 
-input,
-select {
-width: 100%;
-padding: 8px;
-border-radius: 6px;
-border: 1px solid rgba(255, 255, 255, 0.06);
-background: #02121a;
-color: white;
-margin-top: 6px;
-}
+    └── app.js
+    document.addEventListener("DOMContentLoaded", () => {
+      const canvas = document.getElementById('gameCanvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = 720;
+      canvas.height = 140;
 
-└── app.js
+      let running = false;
+      let trxEarned = 0;
+      let wallet = 0;
+      let gameFund = 0;
+      let distance = 0;
+      let serverWallet = 0;
 
-document.addEventListener("DOMContentLoaded", () => {
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-canvas.width = 720;
-canvas.height = 140;
+      let carX = 10;
+      let carColor = '#ff6b6b';
 
-let running = false;
-let trxEarned = 0;
-let wallet = 0;
-let gameFund = 0;
-let distance = 0;
-let serverWallet = 0;
+      const updateUI = () => {
+        document.getElementById('trxEarned').textContent = Math.floor(trxEarned);
+        document.getElementById('wallet').textContent = wallet.toFixed(2);
+        document.getElementById('gameFund').textContent = gameFund.toFixed(2);
+        document.getElementById('distance').textContent = distance;
+        document.getElementById('serverWallet').textContent = serverWallet.toFixed(2);
+      };
 
-let carX = 10;
-let carColor = '#ff6b6b';
+      const draw = () => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#08323a';
+        ctx.fillRect(0, canvas.height - 20, canvas.width, 20);
+        ctx.fillStyle = carColor;
+        ctx.fillRect(carX, canvas.height - 44, 60, 28);
+        ctx.fillStyle = '#061119';
+        ctx.beginPath();
+        ctx.arc(carX + 12, canvas.height - 12, 8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(carX + 48, canvas.height - 12, 8, 0, Math.PI * 2);
+        ctx.fill();
+      };
 
-const updateUI = () => {
-document.getElementById('trxEarned').textContent = Math.floor(trxEarned);
-document.getElementById('wallet').textContent = wallet.toFixed(2);
-document.getElementById('gameFund').textContent = gameFund.toFixed(2);
-document.getElementById('distance').textContent = distance;
-document.getElementById('serverWallet').textContent = serverWallet.toFixed(2);
-};
+      const gameTick = () => {
+        if (!running) return;
+        carX += 10;
+        if (carX > canvas.width) carX = -80;
+        distance += 10;
+        if (Math.random() < 0.7) trxEarned += 1;
+        updateUI();
+        draw();
+        requestAnimationFrame(gameTick);
+      };
 
-const draw = () => {
-ctx.clearRect(0, 0, canvas.width, canvas.height);
-ctx.fillStyle = '#08323a';
-ctx.fillRect(0, canvas.height - 20, canvas.width, 20);
-ctx.fillStyle = carColor;
-ctx.fillRect(carX, canvas.height - 44, 60, 28);
-ctx.fillStyle = '#061119';
-ctx.beginPath();
-ctx.arc(carX + 12, canvas.height - 12, 8, 0, Math.PI * 2);
-ctx.fill();
-ctx.beginPath();
-ctx.arc(carX + 48, canvas.height - 12, 8, 0, Math.PI * 2);
-ctx.fill();
-};
+      document.getElementById('carColor').onchange = e => {
+        carColor = e.target.value;
+      };
 
-const gameTick = () => {
-if (!running) return;
-carX += 10;
-if (carX > canvas.width) carX = -80;
-distance += 10;
-if (Math.random() < 0.7) trxEarned += 1;
-updateUI();
-draw();
-requestAnimationFrame(gameTick);
-};
+      document.getElementById('startBtn').onclick = () => {
+        running = true;
+        document.getElementById('status').textContent = 'تعمل';
+        gameTick();
+      };
 
-document.getElementById('carColor').onchange = e => {
-carColor = e.target.value;
-};
+      document.getElementById('stopBtn').onclick = () => {
+        running = false;
+        document.getElementById('status').textContent = 'متوقفة';
+      };
 
-document.getElementById('startBtn').onclick = () => {
-running = true;
-document.getElementById('status').textContent = 'تعمل';
-gameTick();
-};
+      document.getElementById('collectBtn').onclick = () => {
+        if (trxEarned < 1) {
+          alert("لا توجد أرباح لجمعها.");
+          return;
+        }
+        const rate = 0.1;
+        const totalUSDT = trxEarned * rate;
+        const fee = totalUSDT * 0.03;
+        const netUSDT = totalUSDT - fee;
 
-document.getElementById('stopBtn').onclick = () => {
-running = false;
-document.getElementById('status').textContent = 'متوقفة';
-};
+        gameFund += fee;
+        wallet += netUSDT;
+        trxEarned = 0;
+        updateUI();
+        alert(`تم تحويل ${netUSDT.toFixed(2)} USDT إلى محفظتك الداخلية (خصم 3% تمويل).`);
+      };
 
-document.getElementById('collectBtn').onclick = () => {
-if (trxEarned < 1) {
-alert("لا توجد أرباح لجمعها.");
-return;
-}
-const rate = 0.1;
-const totalUSDT = trxEarned * rate;
-const fee = totalUSDT * 0.03;
-const netUSDT = totalUSDT - fee;
+      document.getElementById('convertFund').onclick = () => {
+        if (gameFund <= 0) {
+          alert("لا يوجد رصيد في محفظة التمويل.");
+          return;
+        }
+        wallet += gameFund;
+        gameFund = 0;
+        updateUI();
+        alert("✅ تم تحويل تمويل اللعبة إلى محفظتك الداخلية.");
+      };
 
-gameFund += fee;
-wallet += netUSDT;
-trxEarned = 0;
-updateUI();
-alert(تم تحويل ${netUSDT.toFixed(2)} USDT إلى محفظتك الداخلية (خصم 3% تمويل).);
-};
+      document.getElementById('fundServerBtn').onclick = () => {
+        const amt = parseFloat(document.getElementById('fundAmount').value);
+        if (isNaN(amt) || amt <= 0 || amt > trxEarned) {
+          alert("مبلغ غير صحيح أو أكبر من أرباحك.");
+          return;
+        }
+        trxEarned -= amt;
+        serverWallet += amt;
+        updateUI();
+        alert(`✅ تم تحويل ${amt} TRX إلى محفظة الخادم.`);
+      };
 
-document.getElementById('convertFund').onclick = () => {
-if (gameFund <= 0) {
-alert("لا يوجد رصيد في محفظة التمويل.");
-return;
-}
-wallet += gameFund;
-gameFund = 0;
-updateUI();
-alert("✅ تم تحويل تمويل اللعبة إلى محفظتك الداخلية.");
-};
+      document.getElementById('reqWithdraw').onclick = () => {
+        const to = document.getElementById('toAddress').value;
+        const amt = parseFloat(document.getElementById('amount').value);
+        const fee = 5;
 
-document.getElementById('fundServerBtn').onclick = () => {
-const amt = parseFloat(document.getElementById('fundAmount').value);
-if (isNaN(amt) || amt <= 0 || amt > trxEarned) {
-alert("مبلغ غير صحيح أو أكبر من أرباحك.");
-return;
-}
-trxEarned -= amt;
-serverWallet += amt;
-updateUI();
-alert(✅ تم تحويل ${amt} TRX إلى محفظة الخادم.);
-};
+        if (!to.startsWith("T") || amt <= 0 || wallet < amt) {
+          alert("تحقق من العنوان أو الرصيد.");
+          return;
+        }
 
-document.getElementById('reqWithdraw').onclick = () => {
-const to = document.getElementById('toAddress').value;
-const amt = parseFloat(document.getElementById('amount').value);
-const fee = 5;
+        if (serverWallet < fee) {
+          alert("محفظة الخادم لا تحتوي على رسوم كافية.");
+          return;
+        }
 
-if (!to.startsWith("T") || amt <= 0 || wallet < amt) {
-alert("تحقق من العنوان أو الرصيد.");
-return;
-}
+        wallet -= amt;
+        serverWallet -= fee;
+        updateUI();
+        alert(`✅ تم تقديم طلب سحب ${amt} USDT إلى ${to} وتم خصم ${fee} TRX من محفظة الخادم.`);
+      };
 
-if (serverWallet < fee) {
-alert("محفظة الخادم لا تحتوي على رسوم كافية.");
-return;
-}
-
-wallet -= amt;
-serverWallet -= fee;
-updateUI();
-alert(✅ تم تقديم طلب سحب ${amt} USDT إلى ${to} وتم خصم ${fee} TRX من محفظة الخادم.);
-};
-
-updateUI();
-draw();
-});
-
+      updateUI();
+      draw();
+    });
